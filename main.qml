@@ -1,4 +1,4 @@
-import QtQuick 2.9
+import QtQuick 2.12
 import QtQuick.Window 2.2
 import QtQuick.Controls 2.5
 import QtQuick.Controls.Material 2.3
@@ -7,44 +7,47 @@ import "../js/gridcreator.js" as GridCreator
 Window {
     id: root
     visible: true
-    width: 1280
-    height: 700
+    width: 800
+    height: 600
+    title: "AStar Visualization"
 
     Flickable {
-
-        boundsBehavior: Flickable.DragOverBounds
         id: flickArea
-        focus: true
-        contentWidth: Math.max(gridContainer.width * slider.value, width)
-        contentHeight: Math.max(gridContainer.height * slider.value, height)
-        contentX: contentWidth === width ? 0 : gridContainer.width * slider.value
-                                           / 2 - flickArea.width / 2
-        contentY: contentHeight === height ? 0 : gridContainer.height * slider.value
-                                             / 2 - flickArea.height / 2
-
+        contentWidth: gridContainer.width
+        contentHeight: gridContainer.height
         Component.onCompleted: GridCreator.createSpriteObjects()
+
         Rectangle {
             id: gridContainer
-            width: 5000//Don't forget to check that at gridcreator.js
-            height: 5000 //Don't forget to check that at gridcreator.js
+            width: 5000
+            height: 5000
             color: "grey"
-            scale: slider.value
+
             MouseArea {
+                id: mouseArea
+                focus: true
                 anchors.fill: parent
                 drag.target: gridContainer
                 drag.axis: Drag.XAndYAxis
-            }
-        }
-    }
+                acceptedButtons: Qt.LeftButton
+                property Rectangle clickedTile
 
-    Slider {
-        id: slider
-        value: 2
-        orientation: Qt.Vertical
-        anchors {
-            bottom: parent.bottom
-            right: parent.right
-            margins: 50
+
+                Keys.onPressed: {
+                    //Draw a wall
+                    if (mouseArea.pressedButtons && Qt.LeftButton && event.key == Qt.Key_W) {
+                        mouseArea.drag.target = null
+                        var position = mapToItem(gridContainer, mouseArea.mouseX, mouseArea.mouseY)
+                        clickedTile = gridContainer.childAt(position.x, position.y)
+                        clickedTile.color = "black"
+                    }
+                }
+
+                Keys.onReleased: {
+                    if (!(mouseArea.pressedButtons && Qt.LeftButton && event.key == Qt.Key_W))
+                        mouseArea.drag.target = gridContainer
+                }
+            }
         }
     }
 }
