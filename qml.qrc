@@ -1,0 +1,9 @@
+<RCC>
+    <qresource prefix="/">
+        <file>main.qml</file>
+        <file>node.qml</file>
+    </qresource>
+    <qresource prefix="/js">
+        <file>gridcreator.js</file>
+    </qresource>
+</RCC>
