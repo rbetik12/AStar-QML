@@ -7,4 +7,7 @@ Rectangle {
     color: "grey"
     border.color: "black"
     border.width: 2
+    property int fCost: -1
+    property int hCost: -1
+    property int gCost: -1
 }
