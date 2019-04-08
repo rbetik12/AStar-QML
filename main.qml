@@ -56,6 +56,7 @@ Window {
                         clickedTile = gridContainer.childAt(position.x,
                                                             position.y)
                         clickedTile.color = "black"
+                        clickedTile.isWall = true
                         if (ListManager.wallsList.indexOf(clickedTile) === -1)
                             ListManager.wallsList.push(clickedTile)
                     }
@@ -161,8 +162,12 @@ Window {
                 bottom: parent.bottom
                 margins: 20
             }
+            property bool isStartClicked: false
             onClicked:{
-                findWay();
+                if (isStartClicked === false)
+                    findWay();
+                else
+                    buttonStart.enabled = false;
             }
         }
         Button {
@@ -180,29 +185,6 @@ Window {
             }
         }
       }
-    function findWay(){
-        var unMarkedTiles = new Array();
-        var markedTiles = new Array();
-
-        mouseArea.startTile.gCost = 0;
-        mouseArea.startTile.hCost = calcHCost(mouseArea.startTile);
-        mouseArea.startTile.fCost = calcFCost(mouseArea.startTile);
-        unMarkedTiles.push(mouseArea.startTile);
-
-        while(unMarkedTiles.length != 0){
-            var currentTile = lowestFCostTile(unMarkedTiles);
-
-            if (mouseArea.childAt(currentTile.x, currentTile.y) === mouseArea.goalTile){
-                return;
-            }
-
-            unMarkedTiles = unMarkedTiles.splice(unMarkedTiles.indexOf(currentTile), 1);
-            currentTile.color = "#f74545";
-            markedTiles.push(currentTile);
-            break;
-        }
-    }
-
     function calcHCost(tile){
         return Math.round(Math.sqrt(Math.pow((mouseArea.goalTile.x - tile.x),2) + Math.pow((mouseArea.goalTile.y - tile.y),2)));
     }
@@ -219,4 +201,77 @@ Window {
         })
         return minFCostTile;
     }
+
+    function calculateNeighboursCosts(current, parent){
+        return Math.round(Math.sqrt(Math.pow((parent.x - current.x),2) + Math.pow((parent.y - current.y),2)));
+    }
+
+    function arrayRemove(arr, value){
+
+        return arr.filter(function(elem){
+            return compareTile(value, elem);
+        })
+    }
+
+    function compareTile(tile1, tile2){
+        return tile1.x === tile2.x && tile1.y === tile2.y;
+    }
+
+    function findWay() {
+        var unMarkedTiles = new Array();
+        var markedTiles = new Array();
+
+        mouseArea.startTile.gCost = 0;
+        mouseArea.startTile.hCost = calcHCost(mouseArea.startTile);
+        mouseArea.startTile.fCost = calcFCost(mouseArea.startTile);
+        unMarkedTiles.push(mouseArea.startTile);
+
+        while(unMarkedTiles.length != 0){
+            console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+            var currentTile = lowestFCostTile(unMarkedTiles);
+
+//            console.log("Current tile x: " + currentTile.x + " y: " + currentTile.y);
+
+
+            if (compareTile(gridContainer.childAt(currentTile.x, currentTile.y), mouseArea.goalTile)){
+                return;
+            }
+
+
+
+            unMarkedTiles = arrayRemove(unMarkedTiles, unMarkedTiles.indexOf(currentTile));
+
+            console.log(unMarkedTiles);
+            markedTiles.push(currentTile);
+
+            console.log("Mark len: " + markedTiles.length);
+            for (var y = currentTile.y + GridCreator.cellSize; y > currentTile.y - GridCreator.cellSize * 2; y -= GridCreator.cellSize){
+                for (var x = currentTile.x - GridCreator.cellSize; x < currentTile.x + GridCreator.cellSize * 2; x += GridCreator.cellSize){
+                    if ((x == currentTile.x && y == currentTile.y) || y >= GridCreator.height || x >= GridCreator.width || x < 0 || y < 0 || currentTile.isWall === true) continue;
+
+                    var mapTile = gridContainer.childAt(x, y);
+
+                    var wayCost = mapTile.gCost + calculateNeighboursCosts(mapTile, currentTile);
+
+                    if (markedTiles.indexOf(mapTile) != -1 || wayCost >= mapTile.gCost && mapTile.gCost != -1) continue;
+
+                    mapTile.parentX = currentTile.x;
+                    mapTile.parentY = currentTile.y;
+                    mapTile.gCost = wayCost;
+                    mapTile.hCost = calcHCost(mapTile);
+                    mapTile.fCost = calcFCost(mapTile);
+                    mapTile.color = "green"
+
+//                    console.log("X: " + mapTile.x + " Y: " + mapTile.y);
+
+                    if (unMarkedTiles.indexOf(mapTile) == -1) unMarkedTiles.push(mapTile);
+//                    console.log("Unmark len: " + unMarkedTiles.length);
+            }
+        }
+
+    }
+
+
+}
+
 }
