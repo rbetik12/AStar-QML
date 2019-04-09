@@ -32,7 +32,6 @@ Window {
                 drag.target: gridContainer
                 drag.axis: Drag.XAndYAxis
                 acceptedButtons: Qt.LeftButton | Qt.RightButton
-                property Rectangle clickedTile
                 property bool isStartPlaced: false
                 property bool isGoalPlaced: false
                 property Rectangle goalTile;
@@ -53,10 +52,9 @@ Window {
                         var position = mapToItem(gridContainer,
                                                  mouseArea.mouseX,
                                                  mouseArea.mouseY)
-                        clickedTile = gridContainer.childAt(position.x,
+                        var clickedTile = gridContainer.childAt(position.x,
                                                             position.y)
-                        clickedTile.color = "black"
-                        clickedTile.isWall = true
+                        clickedTile.color = "#000000"
                         if (ListManager.wallsList.indexOf(clickedTile) === -1)
                             ListManager.wallsList.push(clickedTile)
                     }
@@ -109,7 +107,7 @@ Window {
                             mouseArea.goalTile = null
                         }
 
-                        ListManager.remove(clickedTile)
+                        ListManager.wallsList = arrayRemove(ListManager.wallsList, clickedTile);
                         clickedTile.color = "gray"
                     }
                 }
@@ -171,20 +169,35 @@ Window {
             }
         }
         Button {
-            id: showWallsList
+            id: clearAllBtn
             height: 40
             width: 80
-            text: "Show list"
+            text: "Clear map"
             anchors {
                 left: parent.left
                 bottom: buttonStart.top
                 margins: 20
             }
             onClicked: {
-                console.log(ListManager.wallsList.length)
+                clearAll();
             }
         }
       }
+    function clearAll(){
+        ListManager.wallsList.forEach(function(item, i, arr){
+            gridContainer.childAt(item.x, item.y).color = "gray";
+        });
+
+        ListManager.wallsList = new Array();
+
+        gridContainer.childAt(mouseArea.goalTile.x, mouseArea.goalTile.y).color = "gray";
+        gridContainer.childAt(mouseArea.startTile.x, mouseArea.startTile.y).color = "gray";
+        mouseArea.goalTile = null;
+        mouseArea.startTile = null;
+        mouseArea.isStartPlaced = false;
+        mouseArea.isGoalPlaced = false;
+    }
+
     function calcHCost(tile){
         return Math.round(Math.sqrt(Math.pow((mouseArea.goalTile.x - tile.x),2) + Math.pow((mouseArea.goalTile.y - tile.y),2)));
     }
@@ -217,7 +230,13 @@ Window {
         return tile1.x === tile2.x && tile1.y === tile2.y;
     }
 
+    function sleep(ms) {
+        ms += new Date().getTime();
+        while (new Date() < ms){}
+    }
+
     function findWay() {
+
         var unMarkedTiles = new Array();
         var markedTiles = new Array();
 
@@ -226,30 +245,28 @@ Window {
         mouseArea.startTile.fCost = calcFCost(mouseArea.startTile);
         unMarkedTiles.push(mouseArea.startTile);
 
-        while(unMarkedTiles.length != 0){
-            console.log("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
-            var currentTile = lowestFCostTile(unMarkedTiles);
+        var i = 0;
 
-//            console.log("Current tile x: " + currentTile.x + " y: " + currentTile.y);
+        while(unMarkedTiles.length != 0){
+
+            var currentTile = lowestFCostTile(unMarkedTiles);
 
 
             if (compareTile(gridContainer.childAt(currentTile.x, currentTile.y), mouseArea.goalTile)){
                 return;
             }
 
-
-
             unMarkedTiles = arrayRemove(unMarkedTiles, unMarkedTiles.indexOf(currentTile));
 
-            console.log(unMarkedTiles);
+
             markedTiles.push(currentTile);
 
-            console.log("Mark len: " + markedTiles.length);
             for (var y = currentTile.y + GridCreator.cellSize; y > currentTile.y - GridCreator.cellSize * 2; y -= GridCreator.cellSize){
                 for (var x = currentTile.x - GridCreator.cellSize; x < currentTile.x + GridCreator.cellSize * 2; x += GridCreator.cellSize){
-                    if ((x == currentTile.x && y == currentTile.y) || y >= GridCreator.height || x >= GridCreator.width || x < 0 || y < 0 || currentTile.isWall === true) continue;
-
                     var mapTile = gridContainer.childAt(x, y);
+                    if ((x == currentTile.x && y == currentTile.y) || y >= GridCreator.height || x >= GridCreator.width || x < 0 || y < 0 || mapTile.color == "#000000") continue;
+
+
 
                     var wayCost = mapTile.gCost + calculateNeighboursCosts(mapTile, currentTile);
 
@@ -260,15 +277,24 @@ Window {
                     mapTile.gCost = wayCost;
                     mapTile.hCost = calcHCost(mapTile);
                     mapTile.fCost = calcFCost(mapTile);
-                    mapTile.color = "green"
 
-//                    console.log("X: " + mapTile.x + " Y: " + mapTile.y);
+
+                    if (!compareTile(mapTile, mouseArea.goalTile)){
+                        mapTile.mColor = 1;
+                        mapTile.update();
+                        gridContainer.update();
+                        root.update();
+                    }
+
+
+
+                    mapTile.update();
+                    gridContainer.update();
+                    root.update();
 
                     if (unMarkedTiles.indexOf(mapTile) == -1) unMarkedTiles.push(mapTile);
-//                    console.log("Unmark len: " + unMarkedTiles.length);
             }
         }
-
     }
 
 
