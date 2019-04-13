@@ -1,7 +1,6 @@
 import QtQuick 2.12
 import QtQuick.Window 2.12
 
-
 Rectangle {
     width: 40
     height: 40
@@ -13,25 +12,32 @@ Rectangle {
     property int gCost: -1
     property int parentX: -1
     property int parentY: -1
-    property int mColor: 0 // not green - 0; green - 1
-    onMColorChanged:{
-        if (mColor == 1){
-
+    property int mColor: 0 // not green - 0; green - 1; blue - 2
+    onMColorChanged: {
+        if (mColor == 1) {
             anim.start()
-//            console.log(anim.)
-            update()
+        }
+        else if (mColor == 2){
+            anim1.start()
         }
     }
 
-    ColorAnimation on color{
+    ColorAnimation on color {
         running: false
         id: anim
         to: "green"
         duration: 100
     }
-    function sleep(ms) {
-        ms += new Date().getTime();
-        while (new Date() < ms){}
+    ColorAnimation on color {
+        running: false
+        id: anim1
+        to: "#4286f4"
+        duration: 100
     }
+    function sleep(ms) {
+        ms += new Date().getTime()
+        while (new Date() < ms) {
 
+        }
+    }
 }
