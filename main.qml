@@ -22,7 +22,6 @@ Window {
             id: gridContainer
             width: 5000
             height: 5000
-            scale: slider.value
             color: "grey"
             property var currentTile
             MouseArea {
@@ -36,6 +35,10 @@ Window {
                 property bool isGoalPlaced: false
                 property Rectangle goalTile
                 property Rectangle startTile
+                drag.minimumX: root.width - gridContainer.width
+                drag.maximumX: 0
+                drag.minimumY: root.height - gridContainer.height
+                drag.maximumY: 0
                 onClicked: {
                     mouseArea.focus = true
                 }
@@ -123,70 +126,111 @@ Window {
     Rectangle {
         id: menu
         height: 150
-        width: 400
+        width: 300
         opacity: 0.9
         color: "#606060"
         anchors {
             bottom: parent.bottom
             left: parent.left
         }
-        Slider {
-            id: slider
-            value: 1
-            from: 1
-            to: 0.57
-            anchors {
-                bottom: parent.bottom
-                right: parent.right
-            }
-            onValueChanged: {
-                gridContainer.x = -root.width * (1 + slider.value)
-                gridContainer.y = -root.height * (1 + slider.value)
-                console.log(slider.value)
-            }
-        }
         Button {
             id: buttonStart
-            height: 40
+            height: 50
             width: 80
             text: "Start"
             anchors {
                 left: parent.left
                 bottom: parent.bottom
                 margins: 20
+                bottomMargin: 60
             }
             property bool isStartClicked: false
             property var startTime
             onClicked: {
-                    var foundWay = findWay()
-                    console.log(foundWay)
-                    isStartClicked = true
-                    buttonStart.enabled = false
-
-                    if (foundWay){
-                       drawWay();
-
+                    if (mouseArea.goalTile == null){errorsText.text = "Goal tile\nmust be marked"}
+                    else if (mouseArea.goalTile == null){errorsText.text = "Start tile\nmust be marked"}
+                    else {
+                        errorsText.text = ""
+                        var foundWay = findWay()
+                        isStartClicked = true
+                        buttonStart.enabled = false
+                        statusRect.visible = true
+                        if (foundWay){
+                           drawWay();
+                           anim.start()
+                           wayFound.visible = true
+                        }
+                        else if (!foundWay && isStartClicked){
+                           anim.start()
+                           wayNotFound.visible = true
+                        }
                     }
             }
         }
-
-        Button {
-            id: clearAllBtn
-            height: 40
-            width: 80
-            text: "Clear map"
-            anchors {
-                left: parent.left
-                bottom: buttonStart.top
-                margins: 20
-            }
-
-            enabled: false
-            onClicked: {
-
-            }
+        Text{
+            id: errorsText
+            font.pointSize: 16
+            color: "white"
+            anchors.left: buttonStart.right
+            padding: 5
+            anchors.leftMargin: 7
         }
     }
+
+    Rectangle{
+        id: statusRect
+        opacity: 0.2
+        height: root.height
+        width: root.width
+        color: "gray"
+        visible: false
+        SequentialAnimation on color {
+            running: false
+            id: anim
+            loops: Animation.Infinite
+            property int animDuration: 500
+            ColorAnimation {
+                from: "red"
+                to: "yellow"
+                duration: anim.animDuration
+            }
+            ColorAnimation {
+                from: "yellow"
+                to: "green"
+                duration: anim.animDuration
+            }
+            ColorAnimation {
+                from: "green"
+                to: "blue"
+                duration: anim.animDuration
+            }
+            ColorAnimation {
+                from: "blue"
+                to: "red"
+                duration: anim.animDuration
+            }
+
+        }
+
+    }
+    Text{
+        id: wayFound
+        anchors.centerIn: parent
+        font.pointSize: 36
+        visible: false
+        color: "white"
+        text: 'Path was found!'
+    }
+    Text{
+        id: wayNotFound
+        anchors.centerIn: parent
+        font.pointSize: 36
+        opacity: 1
+        color: "white"
+        visible: false
+        text: 'Path wasn\'t found! :('
+    }
+
     function clearAll() {
         ListManager.wallsList.forEach(function (item, i, arr) {
             gridContainer.childAt(item.x, item.y).color = "gray"
@@ -232,6 +276,13 @@ Window {
     function compareTile(tile1, tile2) {
         return tile1.x == tile2.x && tile1.y == tile2.y
     }
+
+    function arrayRemove(arr, value){
+
+            return arr.filter(function(elem){
+                return compareTile(value, elem);
+            })
+        }
 
     function sleep(ms) {
         ms += new Date().getTime()
